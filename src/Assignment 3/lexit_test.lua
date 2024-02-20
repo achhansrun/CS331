@@ -6,7 +6,7 @@
 -- Test Program for Module lexit
 -- Used in Assignment 3, Exercise B
 
-lexit = require "lexit"  -- Import lexit module
+lexit = require "src.Assignment 3.lexit"  -- Import lexit module
 
 
 -- *********************************************

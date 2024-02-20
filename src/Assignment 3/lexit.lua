@@ -43,7 +43,6 @@ lexit.OP     = 5
 lexit.PUNCT  = 6
 lexit.MAL    = 7
 
-
 -- catnames
 -- Array of names of lexeme categories.
 -- Human-readable strings. Indices are above numeric constants.
@@ -191,6 +190,10 @@ function lexit.lex(program)
         return program:sub(pos+1, pos+1)
     end
 
+	local function nextCharAt(position)
+		return program:sub(pos+position, pos+position)
+	end
+
     -- drop1
     -- Move pos to the next character.
     local function drop1()
@@ -299,13 +302,38 @@ function lexit.lex(program)
         if isDigit(ch) then
             add1()
         elseif ch == "." then
-            add1()
             state = DIGDOT
-        else
+		if (ch == "e" or ch == "E") then
+            if isDigit(nextChar()) then
+                add1() -- Consume the "e" or "E"
+                if nextChar() == "+" then
+                    add1() -- Consume the "+"
+                    if isDigit(nextChar()) then
+                        add1() -- Consume the digit
+                        while isDigit(nextChar()) do
+                            add1() -- Consume any following digits
+                        end
+                    else
+                        state = DONE
+                        category = lexit.NUMLIT -- Treat "e" or "E" as a separate token
+                    end
+                else
+                    state = DONE
+                    category = lexit.NUMLIT -- Treat "e" or "E" as a separate token
+                end
+            else
+                state = DONE
+                category = lexit.NUMLIT -- Treat "e" or "E" as a separate token
+            end
+        elseif nextChar() == "+" then
             state = DONE
-            category = lexit.NUMLIT
+            category = lexit.OP -- Treat "+" as a separate token
         end
+    else
+        state = DONE
+        category = lexit.NUMLIT
     end
+end
 
     -- State DIGDOT: we are in a NUMLIT, and we have seen ".".
     local function handle_DIGDOT()
@@ -319,59 +347,20 @@ function lexit.lex(program)
 
     -- State DOT: we have seen a dot (".") and nothing else.
     local function handle_DOT()
-        if isDigit(ch) then
-            add1()
-            state = DIGDOT
-        else
-            state = DONE
-            category = lexit.OP
-        end
+        state = DONE
+		category = lexit.PUNCT
     end
 
     -- State PLUS: we have seen a plus ("+") and nothing else.
     local function handle_PLUS()
-        if isDigit(ch) then
-            add1()
-            state = DIGIT
-        elseif ch == "." then
-            if isDigit(nextChar()) then  -- lookahead
-                add1()  -- add dot to lexeme
-                state = DIGDOT
-            else        -- lexeme is just "+"; do not add dot to lexeme
-                state = DONE
-                category = lexit.OP
-            end
-        elseif ch == "+" or ch == "=" then
-            add1()
             state = DONE
             category = lexit.OP
-        else
-            state = DONE
-            category = lexit.OP
-        end
     end
 
     -- State MINUS: we have seen a minus ("-") and nothing else.
     local function handle_MINUS()
-        if isDigit(ch) then
-            add1()
-            state = DIGIT
-        elseif ch == "." then
-            if isDigit(nextChar()) then  -- lookahead
-                add1()  -- add dot to lexeme
-                state = DIGDOT
-            else        -- lexeme is just "-"; do not add dot to lexeme
-                state = DONE
-                category = lexit.OP
-            end
-        elseif ch == "-" or ch == "=" then
-            add1()
             state = DONE
             category = lexit.OP
-        else
-            state = DONE
-            category = lexit.OP
-        end
     end
 
     -- State STAR: we have seen a star ("*"), slash ("/"), or equal
@@ -398,7 +387,7 @@ function lexit.lex(program)
         [DOT]=handle_DOT,
         [PLUS]=handle_PLUS,
         [MINUS]=handle_MINUS,
-        [STAR]=handle_STAR,
+        [STAR]=handle_STAR
     }
 
     -- ***** Iterator Function *****

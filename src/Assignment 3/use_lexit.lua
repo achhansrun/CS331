@@ -6,7 +6,7 @@
 -- Simple Main Program for lexit Module
 -- Requires lexit.lua
 
-local lexit = require "lexit"
+local lexit = require "src.Assignment 3.lexit"
 
 
 -- Our "program", which is sent to the lexer

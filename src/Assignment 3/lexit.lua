@@ -162,15 +162,17 @@ function lexit.lex(program)
 
     -- ***** States *****
 
-    local DONE   = 0
-    local START  = 1
-    local LETTER = 2
-    local DIGIT  = 3
-    local DIGDOT = 4
-    local DOT    = 5
-    local PLUS   = 6
-    local MINUS  = 7
-    local STAR   = 8
+    local DONE      = 0
+    local START     = 1
+    local LETTER    = 2
+    local DIGIT     = 3
+    local DIGDOT    = 4
+    local DOT       = 5
+    local PLUS      = 6
+    local MINUS     = 7
+    local STAR      = 8
+    local EXPONENT  = 9
+    local STRLIT    = 10
 
     -- ***** Character-Related Utility Functions *****
 
@@ -268,6 +270,9 @@ function lexit.lex(program)
         elseif ch == "*" or ch == "/" or ch == "=" then
             add1()
             state = STAR
+        elseif ch == "\"" or ch == "\'" then
+            add1()
+            state = STRLIT
         else
             add1()
             state = DONE
@@ -303,37 +308,45 @@ function lexit.lex(program)
             add1()
         elseif ch == "." then
             state = DIGDOT
-		if (ch == "e" or ch == "E") then
-            if isDigit(nextChar()) then
-                add1() -- Consume the "e" or "E"
-                if nextChar() == "+" then
-                    add1() -- Consume the "+"
-                    if isDigit(nextChar()) then
-                        add1() -- Consume the digit
-                        while isDigit(nextChar()) do
-                            add1() -- Consume any following digits
-                        end
-                    else
-                        state = DONE
-                        category = lexit.NUMLIT -- Treat "e" or "E" as a separate token
-                    end
+        elseif ch == "e" or ch == "E" then
+            if nextChar() == "+" then
+                if isDigit(program:sub(pos+2, pos+2)) then
+                   add1()
+                   add1()
+                   state = EXPONENT
                 else
                     state = DONE
-                    category = lexit.NUMLIT -- Treat "e" or "E" as a separate token
+                    category = lexit.NUMLIT
                 end
+            elseif isDigit(nextChar()) then
+                add1()
+                state = EXPONENT
             else
                 state = DONE
-                category = lexit.NUMLIT -- Treat "e" or "E" as a separate token
+                category = lexit.NUMLIT
             end
-        elseif nextChar() == "+" then
+        elseif ch == "+" then
+            if isDigit(nextChar()) then
+                add1()
+            else
+                state = DONE
+                category = lexit.NUMLIT
+            end
+        else
             state = DONE
-            category = lexit.OP -- Treat "+" as a separate token
+            category = lexit.NUMLIT
         end
-    else
-        state = DONE
-        category = lexit.NUMLIT
     end
-end
+
+    local function handle_EXPONENT()
+        if isDigit(ch) then
+            add1()
+        else
+            state = DONE
+            category = lexit.NUMLIT
+        end
+    end
+
 
     -- State DIGDOT: we are in a NUMLIT, and we have seen ".".
     local function handle_DIGDOT()
@@ -344,6 +357,26 @@ end
             category = lexit.NUMLIT
         end
     end
+
+-- State STRLIT: we have seen a quote (single or double) and nothing else.
+local function handle_STRLIT()
+    while true do
+        if currChar() == "" or currChar() == "\n" then
+            state = DONE
+            category = lexit.MAL
+            break
+        elseif currChar() == "\"" or currChar() == "'" then
+            add1()  -- Include the closing quote in the lexeme
+            state = DONE
+            category = lexit.STRLIT
+            break
+        else
+            add1()
+        end
+    end
+end
+
+
 
     -- State DOT: we have seen a dot (".") and nothing else.
     local function handle_DOT()
@@ -387,7 +420,9 @@ end
         [DOT]=handle_DOT,
         [PLUS]=handle_PLUS,
         [MINUS]=handle_MINUS,
-        [STAR]=handle_STAR
+        [STAR]=handle_STAR,
+        [EXPONENT]=handle_EXPONENT,
+        [STRLIT]=handle_STRLIT
     }
 
     -- ***** Iterator Function *****

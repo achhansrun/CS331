@@ -1,40 +1,13 @@
+-- lexit.lua
+-- Ash Moore-Schultz
+-- 02-20-2024
 -- For CS 331 Spring 2024
--- In-Class Lexer Module
+-- Assignment 3 Lexer Module
 
--- History:
--- - v1:
---   - Framework written. Lexer treats every character as punctuation.
--- - v2:
---   - Add state LETTER, with handler. Write skipToNextLexeme. Add
---     comment on invariants.
--- - v3
---   - Finished (hopefully). Add states DIGIT, DIGDOT, DOT, PLUS, MINUS,
---     STAR. Comment each state-handler function. Check for MAL lexeme.
+--- Set up module table
+local lexit = {}  -- The module
 
--- Usage:
---
---    program = "print a+b;"  -- program to lex
---    for lexstr, cat in lexer.lex(program) do
---        -- lexstr is the string form of a lexeme.
---        -- cat is a number representing the lexeme category.
---        --  It can be used as an index for array lexer.catnames.
---    end
-
-
--- *********************************************************************
--- Module Table Initialization
--- *********************************************************************
-
-
-local lexit = {}  -- Our module; members are added below
-
-
--- *********************************************************************
 -- Public Constants
--- *********************************************************************
-
-
--- Numeric constants representing lexeme categories
 lexit.KEY    = 1
 lexit.ID     = 2
 lexit.NUMLIT = 3
@@ -43,9 +16,7 @@ lexit.OP     = 5
 lexit.PUNCT  = 6
 lexit.MAL    = 7
 
--- catnames
--- Array of names of lexeme categories.
--- Human-readable strings. Indices are above numeric constants.
+--Lexeme categories that can be read by humans
 lexit.catnames = {
     "Keyword",
     "Identifier",
@@ -57,16 +28,11 @@ lexit.catnames = {
 }
 
 
--- *********************************************************************
--- Kind-of-Character Functions
--- *********************************************************************
 
--- All functions return false when given a string whose length is not
--- exactly 1.
-
+--****Character Functions****
 
 -- isLetter
--- Returns true if string c is a letter character, false otherwise.
+-- Checks if a character is a letter
 local function isLetter(c)
     if c:len() ~= 1 then
         return false
@@ -81,7 +47,7 @@ end
 
 
 -- isDigit
--- Returns true if string c is a digit character, false otherwise.
+-- Checks if string c is a digit
 local function isDigit(c)
     if c:len() ~= 1 then
         return false
@@ -94,7 +60,7 @@ end
 
 
 -- isWhitespace
--- Returns true if string c is a whitespace character, false otherwise.
+-- Checks if string c is a whitespace.
 local function isWhitespace(c)
     if c:len() ~= 1 then
         return false
@@ -108,8 +74,7 @@ end
 
 
 -- isPrintableASCII
--- Returns true if string c is a printable ASCII character (codes 32 " "
--- through 126 "~"), false otherwise.
+-- Checks if string c is ASCII
 local function isPrintableASCII(c)
     if c:len() ~= 1 then
         return false
@@ -122,7 +87,7 @@ end
 
 
 -- isIllegal
--- Returns true if string c is an illegal character, false otherwise.
+-- Checks if if string c is an illegal character.
 local function isIllegal(c)
     if c:len() ~= 1 then
         return false
@@ -135,20 +100,8 @@ local function isIllegal(c)
     end
 end
 
-
--- *********************************************************************
 -- The Lexer
--- *********************************************************************
-
-
--- lex
--- Our lexer
--- Intended for use in a for-in loop:
---     for lexstr, cat in lexer.lex(program) do
--- Here, lexstr is the string form of a lexeme, and cat is a number
--- representing a lexeme category. (See Public Constants.)
 function lexit.lex(program)
-    -- ***** Variables (like class data members) *****
 
     local pos       -- Index of next character in program
                     -- INVARIANT: when getLexeme is called, pos is
@@ -166,28 +119,21 @@ function lexit.lex(program)
     local START     = 1
     local LETTER    = 2
     local DIGIT     = 3
-    local DIGDOT    = 4
-    local DOT       = 5
-    local PLUS      = 6
-    local MINUS     = 7
-    local STAR      = 8
-    local EXPONENT  = 9
-    local STRLIT    = 10
+	local DIGDOT	= 4
+    local PUNCT 	= 5
+    local OP     	= 6
+    local EXPONENT  = 7
+    local STRLIT    = 8
+	local MAL		= 9
 
     -- ***** Character-Related Utility Functions *****
 
     -- currChar
-    -- Return the current character, at index pos in program. Return
-    -- value is a single-character string, or the empty string if pos is
-    -- past the end.
     local function currChar()
         return program:sub(pos, pos)
     end
 
     -- nextChar
-    -- Return the next character, at index pos+1 in program. Return
-    -- value is a single-character string, or the empty string if pos+1
-    -- is past the end.
     local function nextChar()
         return program:sub(pos+1, pos+1)
     end
@@ -197,22 +143,18 @@ function lexit.lex(program)
 	end
 
     -- drop1
-    -- Move pos to the next character.
     local function drop1()
         pos = pos+1
     end
 
     -- add1
-    -- Add the current character to the lexeme, moving pos to the next
-    -- character.
     local function add1()
         lexstr = lexstr .. currChar()
         drop1()
     end
 
     -- skipToNextLexeme
-    -- Skip whitespace and comments, moving pos to the beginning of
-    -- the next lexeme, or to program:len()+1.
+	--skips whitespace and comments that start with #
     local function skipToNextLexeme()
         while true do
             -- Skip whitespace characters
@@ -238,47 +180,33 @@ function lexit.lex(program)
 
     -- ***** State-Handler Functions *****
 
-    -- A function with a name like handle_XYZ is the handler function
-    -- for state XYZ
-
-    -- State DONE: lexeme is done; this handler should not be called.
     local function handle_DONE()
         error("'DONE' state should not be handled\n")
     end
 
-    -- State START: no character read yet.
-    local function handle_START()
-        if isIllegal(ch) then
-            add1()
-            state = DONE
-            category = lexit.MAL
-        elseif isLetter(ch) or ch == "_" then
-            add1()
-            state = LETTER
-        elseif isDigit(ch) then
-            add1()
-            state = DIGIT
-        elseif ch == "." then
-            add1()
-            state = DOT
-        elseif ch == "+" then
-            add1()
-            state = PLUS
-        elseif ch == "-" then
-            add1()
-            state = MINUS
-        elseif ch == "*" or ch == "/" or ch == "=" then
-            add1()
-            state = STAR
-        elseif ch == "\"" or ch == "\'" then
-            add1()
-            state = STRLIT
-        else
-            add1()
-            state = DONE
-            category = lexit.PUNCT
-        end
-    end
+        -- State START: no character read yet.
+		local function handle_START()
+			if isLetter(ch) or ch == "_" then
+				add1()
+				state = LETTER
+			elseif isDigit(ch) then
+				add1()
+				state = DIGIT
+			elseif ch == "'" or ch == '"' then
+				add1()
+				state = STRLIT
+			elseif ch == "=" or ch == "<" or ch == ">" or ch == "+" or ch == "-" or ch == "*" or ch == "/" or ch == "%" or ch == "[" or ch == "]" then
+				add1()
+				state = OP
+			elseif not isIllegal(ch) then
+				add1()
+				state = PUNCT
+			else
+				add1()
+				state = DONE
+				category = lexit.MAL
+			end
+		end
 
     -- State LETTER: we are in an ID.
     local function handle_LETTER()
@@ -307,10 +235,10 @@ function lexit.lex(program)
         if isDigit(ch) then
             add1()
         elseif ch == "." then
-            state = DIGDOT
+			state = DIGDOT
         elseif ch == "e" or ch == "E" then
             if nextChar() == "+" then
-                if isDigit(program:sub(pos+2, pos+2)) then
+                if isDigit(nextCharAt(2)) then
                    add1()
                    add1()
                    state = EXPONENT
@@ -337,6 +265,15 @@ function lexit.lex(program)
             category = lexit.NUMLIT
         end
     end
+	  -- State DIGDOT: we are in a NUMLIT, and we have seen ".".
+	  local function handle_DIGDOT()
+        if isDigit(ch) then
+            add1()
+        else
+            state = DONE
+            category = lexit.NUMLIT
+        end
+    end
 
     local function handle_EXPONENT()
         if isDigit(ch) then
@@ -347,67 +284,44 @@ function lexit.lex(program)
         end
     end
 
-
-    -- State DIGDOT: we are in a NUMLIT, and we have seen ".".
-    local function handle_DIGDOT()
-        if isDigit(ch) then
-            add1()
-        else
-            state = DONE
-            category = lexit.NUMLIT
-        end
-    end
-
 -- State STRLIT: we have seen a quote (single or double) and nothing else.
 local function handle_STRLIT()
-    while true do
-        if currChar() == "" or currChar() == "\n" then
-            state = DONE
-            category = lexit.MAL
-            break
-        elseif currChar() == "\"" or currChar() == "'" then
-            add1()  -- Include the closing quote in the lexeme
-            state = DONE
-            category = lexit.STRLIT
-            break
-        else
-            add1()
-        end
-    end
+	if ch == lexstr:sub(1,1) then
+		add1() --Include closing quotes in lexeme
+		state = DONE
+		category = lexit.STRLIT
+	elseif ch == "" or ch == "\n" then
+		state = DONE
+		category = lexit.MAL
+	else
+		add1()
+	end
+end
+   -- State OP: we are in an OP.
+   local function handle_OP()
+	if ch == "=" and (lexstr:sub(1,1) == "=" or lexstr:sub(1,1) == "<" or lexstr:sub(1,1) == ">") then
+		add1()
+		state = DONE
+		category = lexit.OP
+	else
+		state = DONE
+		category = lexit.OP
+	end
 end
 
-
-
-    -- State DOT: we have seen a dot (".") and nothing else.
-    local function handle_DOT()
-        state = DONE
+-- State PUNCT: we are in a PUNCT.
+local function handle_PUNCT()
+	--if current character is = or ~ then add to lexeme
+	if ch == "=" and lexstr:sub(1,1) ~= "~" then
+		add1()
+		state = DONE
+		category = lexit.OP
+	else
+		--otherwise send it to punctuation
+		state = DONE
 		category = lexit.PUNCT
-    end
-
-    -- State PLUS: we have seen a plus ("+") and nothing else.
-    local function handle_PLUS()
-            state = DONE
-            category = lexit.OP
-    end
-
-    -- State MINUS: we have seen a minus ("-") and nothing else.
-    local function handle_MINUS()
-            state = DONE
-            category = lexit.OP
-    end
-
-    -- State STAR: we have seen a star ("*"), slash ("/"), or equal
-    -- ("=") and nothing else.
-    local function handle_STAR()  -- Handle * or / or =
-        if ch == "=" then
-            add1()
-            state = DONE
-            category = lexit.OP
-        else
-            state = DONE
-            category = lexit.OP
-        end
-    end
+	end
+end
 
     -- ***** Table of State-Handler Functions *****
 
@@ -416,11 +330,9 @@ end
         [START]=handle_START,
         [LETTER]=handle_LETTER,
         [DIGIT]=handle_DIGIT,
-        [DIGDOT]=handle_DIGDOT,
-        [DOT]=handle_DOT,
-        [PLUS]=handle_PLUS,
-        [MINUS]=handle_MINUS,
-        [STAR]=handle_STAR,
+		[DIGDOT]=handle_DIGDOT,
+        [PUNCT]= handle_PUNCT,
+        [OP]=handle_OP,
         [EXPONENT]=handle_EXPONENT,
         [STRLIT]=handle_STRLIT
     }
@@ -428,9 +340,6 @@ end
     -- ***** Iterator Function *****
 
     -- getLexeme
-    -- Called each time through the for-in loop.
-    -- Returns a pair: lexeme-string (string) and category (int), or
-    -- nil, nil if no more lexemes.
     local function getLexeme()
         if pos > program:len() then
             return nil, nil
@@ -447,18 +356,13 @@ end
     end
 
     -- ***** Body of Function lex *****
-
-    -- Initialize & return the iterator function
     pos = 1
     skipToNextLexeme()
     return getLexeme
 end
 
 
--- *********************************************************************
 -- Module Table Return
--- *********************************************************************
-
 
 return lexit
 

@@ -10,7 +10,7 @@
 -- For grammar & AST specification, see the Assignment 4 description.
 
 
-local lexit = require "Assignment 4.lexit"
+local lexit = require "src.Assignment 4.lexit"
 
 
 -- *********************************************************************

@@ -1,4 +1,3 @@
-#!/usr/bin/env lua
 -- parseit_test.lua
 -- Glenn G. Chappell
 -- 2024-02-20
@@ -7,7 +6,7 @@
 -- Test Program for Module parseit
 -- Used in Assignment 4, Exercise A
 
-parseit = require "parseit"  -- Import parseit module
+parseit = require "src.Assignment 4.parseit"  -- Import parseit module
 
 
 -- *********************************************

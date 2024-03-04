@@ -314,8 +314,8 @@ function parse_statement()
         return true, { FUNC_DEF, saveid, ast1 }
 
     else
-        -- TODO: WRITE THIS!!!
-        return false, nil  -- DUMMY
+        
+        return false, nil
     end
 end
 

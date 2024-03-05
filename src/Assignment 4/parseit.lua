@@ -1,6 +1,7 @@
--- parseit.lua  SKELETON
--- Glenn G. Chappell
--- 2024-02-20
+--23 tests left
+-- parseit.lua
+-- Ash Schultz
+-- 2024-03-05
 --
 -- For CS 331 Spring 2024
 -- Solution to Assignment 4, Exercise A
@@ -151,6 +152,8 @@ local parse_compare_expr
 local parse_arith_expr
 local parse_term
 local parse_factor
+local parse_if_stmt
+local parse_while_loop
 
 
 -- *********************************************************************
@@ -282,9 +285,60 @@ function parse_statement()
         return true, { RETURN_STMT, ast1 }
 
     elseif matchCat(lexit.ID) then
-        -- TODO: WRITE THIS!!!
-        return false, nil  -- DUMMY
+        --save the name of the operator to pass back
+        saveid = matched
+        --See if the id is a function call or a variable
+        if matchString("(") then
+            --checks if there is closing braces for the function call
+            if not matchString(")") then
+                return false, nil
+            end
+            --obligatory semi colon at the end of any statement
+            if not matchString(";") then
+                return false, nil
+            end
+            return true, { FUNC_CALL, saveid }
+            --assigning a member of a array
+        elseif matchString("[") then
+            good, ast1 = parse_expr()
+            if not good then
+                return false, nil
+            end
+            if not matchString("]") then
+                return false, nil
+            end
+            
+            if not matchString("=") then
+                return false, nil
+            end
 
+            good, ast2 = parse_expr()
+
+            if not good then
+                return false, nil
+            end
+
+            if not matchString(";") then
+                return false, nil
+            end
+
+            return true, { ASSN_STMT, { ARRAY_VAR, saveid, ast1 }, ast2 }
+            
+        --assigning to a variable
+        elseif matchString("=") then
+            good, ast1 = parse_expr()
+
+            if not good then
+                return false, nil
+            end
+
+            if not matchString(";") then
+                return false, nil
+            end
+
+            return true, {ASSN_STMT, {SIMPLE_VAR, saveid}, ast1}
+        end
+        --defining a function
     elseif matchString("def") then
         if not matchCat(lexit.ID) then
             return false, nil
@@ -312,9 +366,21 @@ function parse_statement()
         end
 
         return true, { FUNC_DEF, saveid, ast1 }
-
-    else
+        --if statements
+    elseif matchString("if") then
+        good, ast1 = parse_if_stmt()
         
+        if not good then
+            return false, nil
+        end
+        return true, ast1
+    elseif matchString("while") then
+        good, ast1 = parse_while_loop()
+        if not good then
+            return false, nil
+        end
+        return true, ast1
+    else
         return false, nil
     end
 end
@@ -332,9 +398,24 @@ function parse_output_arg()
     elseif matchString("eol") then
         return true, { EOL_OUT }
 
+    elseif matchString("char") then
+        if not matchString("(") then
+            return false, nil
+        end
+        good, ast = parse_expr()
+        if not good then
+            return false, nil
+        end
+        if not matchString(")") then
+            return false, nil
+        end
+        return {CHAR_CALL, ast}
     else
-        -- TODO: WRITE THIS!!!
-        return false, nil  -- DUMMY
+        good, ast = parse_expr()
+        if not good then
+            return false, nil
+        end
+        return true, ast
     end
 end
 
@@ -343,8 +424,20 @@ end
 -- Parsing function for nonterminal "expr".
 -- Function init must be called before this function is called.
 function parse_expr()
-    -- TODO: WRITE THIS!!!
-    return false, nil  -- DUMMY
+    local good, ast1, ast2, saveid
+    good, ast1 = parse_compare_expr()
+    if not good then
+        return false, nil
+    end
+    while matchString("and") or matchString("or") do
+        saveid = matched
+        good, ast2 = parse_compare_expr()
+        if not good then
+            return false, nil
+        end
+        ast1 = {{BIN_OP, saveid}, ast1, ast2}
+    end
+    return true, ast1
 end
 
 
@@ -352,8 +445,24 @@ end
 -- Parsing function for nonterminal "compare_expr".
 -- Function init must be called before this function is called.
 function parse_compare_expr()
-    -- TODO: WRITE THIS!!!
-    return false, nil  -- DUMMY
+    local good, ast1, ast2, saveid
+
+    good, ast1 = parse_arith_expr()
+
+    if not good then
+        return false, nil
+    end
+
+    while matchString("==") or matchString("!=") or matchString("<") or matchString("<=") or matchString(">") or matchString(">=") do
+        saveid = matched
+        good, ast2 = parse_arith_expr()
+        if not good then
+            return false, nil
+        end
+        ast1 = {{BIN_OP, saveid}, ast1, ast2}
+    end
+
+    return true, ast1
 end
 
 
@@ -361,8 +470,20 @@ end
 -- Parsing function for nonterminal "arith_expr".
 -- Function init must be called before this function is called.
 function parse_arith_expr()
-    -- TODO: WRITE THIS!!!
-    return false, nil  -- DUMMY
+    local good, ast1, ast2, saveid
+    good, ast1 = parse_term()
+    if not good then
+        return false, nil
+    end
+    while matchString("+") or matchString("-") do
+        saveid = matched
+        good, ast2 = parse_term()
+        if not good then
+            return false, nil
+        end
+        ast1 = { { BIN_OP, saveid }, ast1, ast2 }
+    end
+    return true, ast1
 end
 
 
@@ -370,8 +491,20 @@ end
 -- Parsing function for nonterminal "term".
 -- Function init must be called before this function is called.
 function parse_term()
-    -- TODO: WRITE THIS!!!
-    return false, nil  -- DUMMY
+    local good, ast1, ast2, saveid
+    good, ast1 = parse_factor()
+    if not good then
+        return false, nil
+    end
+    while matchString("*") or matchString("/") or matchString("%") do
+        saveid = matched
+        good, ast2 = parse_term()
+        if not good then
+            return false, nil
+        end
+        ast1 = { { BIN_OP, saveid }, ast1, ast2 }
+    end
+    return true, ast1
 end
 
 
@@ -379,9 +512,171 @@ end
 -- Parsing function for nonterminal "factor".
 -- Function init must be called before this function is called.
 function parse_factor()
-    -- TODO: WRITE THIS!!!
-    return false, nil  -- DUMMY
+    local good, ast1, ast2, saveid
+    if matchCat(lexit.NUMLIT) then
+        saveid = matched
+        return true, {NUMLIT_VAL, matched}
+    elseif matchString("(") then
+        good, ast1 = parse_expr()
+        if not good then
+            return false, nil
+        end
+        if not matchString(")") then
+            return false, nil
+        end
+        return true, ast1
+    elseif matchString("true") or matchString("false") then
+        return true, {BOOLLIT_VAL, matched}
+    elseif matchString("+") or matchString("-") or matchString("not") then
+        saveid = matched
+        good, ast1 = parse_factor()
+        if not good then
+            return false, nil
+        end
+        return true, { { UN_OP, saveid }, ast1 }
+    elseif matchString("inputnum") then
+        if not matchString("(") then
+            return false, nil
+        end
+        if not matchString(")") then
+            return false, nil
+        end
+    return true, {INPUT_CALL}
+    elseif matchString("rand") then
+        if not matchString("(") then
+            return false, nil
+        end
+        good, ast1 = parse_expr()
+        if not good then
+            return false, nil
+        end
+        if not matchString(")") then
+            return false, nil
+        end
+        return true, {RAND_CALL, ast1}
+    elseif matchCat(lexit.ID) then
+        saveid = matched
+            if matchString("(") then
+                if not matchString(")") then
+                    return false, nil
+                end
+                return true, { FUNC_CALL, saveid}
+            elseif matchString("[") then
+                good, ast2 = parse_expr()
+                if not good then
+                    return false, nil
+                end
+                if not matchString("]") then
+                    return false, nil
+                end
+                return true, {ARRAY_VAR, saveid, ast2}
+            else
+                return true, {SIMPLE_VAR, matched}
+            end
+    end
 end
+
+--parse_if_stmt
+--parsing function for if statements
+--function init must be called before this function is called
+
+function parse_while_loop()
+    local good, ast1, ast2
+    if not matchString("(") then
+        return false, nil
+    end
+    good, ast1 = parse_expr()
+    if not good then
+        return false, nil
+    end
+    if not matchString(")") then
+        return false, nil
+    end
+    if not matchString("{") then
+        return false, nil
+    end
+    good, ast2 = parse_program()
+    if not good then
+        return false, nil
+    end
+    if not matchString("}") then
+        return false, nil
+    end
+    return true, { WHILE_LOOP, ast1, ast2 }
+    
+end
+
+--parse_if_stmt
+--parsing function for if statements
+--function init must be called before this function is called
+function parse_if_stmt()
+    local good, ast1, ast2
+    if not matchString("(") then
+        return false, nil
+    end
+    good, ast2 = parse_expr()
+    if not good then
+        return false, nil
+    end
+    if not matchString(")") then
+        return false, nil
+    end
+    ast1 = {IF_STMT, ast2}
+    if not matchString("{") then
+        return false, nil
+    end
+    good, ast2 = parse_program()
+    if not good then
+        return false, nil
+    end
+    if not matchString("}") then
+        return false, nil
+    end
+    --Save ast
+    table.insert(ast1, ast2)
+    while matchString("elseif") do
+        if not matchString("(") then
+            return false, nil
+        end
+        good, ast2 = parse_expr()
+        if not good then
+            return false, nil
+        end
+        if not matchString(")") then
+            return false, nil
+        end
+        --Save ast
+        table.insert(ast1, ast2)
+        if not matchString("{") then
+            return false, nil
+        end
+        good, ast2 = parse_program()
+        if not good then
+            return false, nil
+        end
+
+        if not matchString("}") then
+            return false, nil
+        end
+        --Save ast
+        table.insert(ast1, ast2)
+    end
+    if matchString("else") then
+        if not matchString("{") then
+            return false, nil
+        end
+        good, ast2 = parse_program()
+        if not good then
+            return false, nil
+        end
+        if not matchString("}") then
+            return false, nil
+        end
+        table.insert(ast1, ast2)
+    end
+    return true, ast1
+end
+
 
 
 -- *********************************************************************

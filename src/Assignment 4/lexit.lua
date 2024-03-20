@@ -220,7 +220,7 @@ function lexit.lex(program)
 			or lexstr == "eol" or lexstr == "else" 
 			or lexstr == "elseif" or lexstr == "false" 
 			or lexstr == "if" or lexstr == "inputnum"
-			or lexstr == "not" or lexstr == "or"
+			or lexstr == "not" or lexstr == "or" or lexstr == "rand"
 			or lexstr == "output" or lexstr == "return"
 			then
                 category = lexit.KEY
@@ -253,13 +253,13 @@ function lexit.lex(program)
                 state = DONE
                 category = lexit.NUMLIT
             end
-        elseif ch == "+" then
-            if isDigit(nextChar()) then
-                add1()
-            else
-                state = DONE
-                category = lexit.NUMLIT
-            end
+        -- elseif ch == "+" then
+        --     if isDigit(nextChar()) then
+        --         add1()
+        --     else
+        --         state = DONE
+        --         category = lexit.NUMLIT
+        --     end
         else
             state = DONE
             category = lexit.NUMLIT
@@ -299,7 +299,7 @@ local function handle_STRLIT()
 end
    -- State OP: we are in an OP.
    local function handle_OP()
-	if ch == "=" and (lexstr:sub(1,1) == "=" or lexstr:sub(1,1) == "<" or lexstr:sub(1,1) == ">") then
+	if ch == "=" and (lexstr:sub(1,1) == "=" or lexstr:sub(1,1) == "<" or lexstr:sub(1,1) == ">" or lexstr:sub(1,1) == "!") then
 		add1()
 		state = DONE
 		category = lexit.OP
@@ -312,9 +312,9 @@ end
 -- State PUNCT: we are in a PUNCT.
 local function handle_PUNCT()
 	--if current character is = or ~ then add to lexeme
-	if ch == "=" and lexstr:sub(1,1) ~= "~" then
-		add1()
-		state = DONE
+	if ch == "=" and (lexstr:sub(1,1) ~= "~") then
+		-- add1()
+		state = OP
 		category = lexit.OP
 	else
 		--otherwise send it to punctuation

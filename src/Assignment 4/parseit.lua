@@ -11,7 +11,7 @@
 -- For grammar & AST specification, see the Assignment 4 description.
 
 
-local lexit = require "src.Assignment 4.lexit"
+local lexit = require "src.Assignment 4.lexitold"
 
 
 -- *********************************************************************
@@ -326,17 +326,16 @@ function parse_statement()
             
         --assigning to a variable
         elseif matchString("=") then
-            good, ast1 = parse_expr()
 
+            good, ast1 = parse_expr()
             if not good then
                 return false, nil
             end
-
-            if not matchString(";") then
+            if not matchString( ";" ) then
                 return false, nil
             end
 
-            return true, {ASSN_STMT, {SIMPLE_VAR, saveid}, ast1}
+        	return true, { ASSN_STMT, { SIMPLE_VAR, saveid }, ast1 }
         end
         --defining a function
     elseif matchString("def") then
@@ -409,7 +408,7 @@ function parse_output_arg()
         if not matchString(")") then
             return false, nil
         end
-        return {CHAR_CALL, ast}
+        return true, {CHAR_CALL, ast}
     else
         good, ast = parse_expr()
         if not good then
@@ -431,11 +430,12 @@ function parse_expr()
     end
     while matchString("and") or matchString("or") do
         saveid = matched
+
         good, ast2 = parse_compare_expr()
         if not good then
             return false, nil
         end
-        ast1 = {{BIN_OP, saveid}, ast1, ast2}
+        ast1 = { { BIN_OP, saveid }, ast1, ast2 }
     end
     return true, ast1
 end
@@ -453,7 +453,9 @@ function parse_compare_expr()
         return false, nil
     end
 
-    while matchString("==") or matchString("!=") or matchString("<") or matchString("<=") or matchString(">") or matchString(">=") do
+    while matchString("==") or matchString("!=") 
+	or matchString("<") or matchString("<=") or 
+	matchString(">") or matchString(">=") do
         saveid = matched
         good, ast2 = parse_arith_expr()
         if not good then
@@ -498,7 +500,7 @@ function parse_term()
     end
     while matchString("*") or matchString("/") or matchString("%") do
         saveid = matched
-        good, ast2 = parse_term()
+        good, ast2 = parse_factor()
         if not good then
             return false, nil
         end
@@ -515,7 +517,7 @@ function parse_factor()
     local good, ast1, ast2, saveid
     if matchCat(lexit.NUMLIT) then
         saveid = matched
-        return true, {NUMLIT_VAL, matched}
+        return true, { NUMLIT_VAL, matched }
     elseif matchString("(") then
         good, ast1 = parse_expr()
         if not good then

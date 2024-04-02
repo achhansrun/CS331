@@ -45,32 +45,53 @@ _ <# [] = 0 --First list is empty
 
 
 -- filter2
-filter2 :: (a -> Bool) -> [a] -> [b] -> [b]
-filter2 _ _ bs = bs
+filter2 :: (t -> Bool) -> [t] -> [a] -> [a]
+filter2 _ [] _ = []  -- If the first list is empty, return an empty list
+filter2 _ _ [] = []  -- If the second list is empty, return an empty list
+filter2 pred (x:xs) (y:ys) =
+    if pred x
+    then y: filter2 pred xs ys
+    else filter2 pred xs ys
 
 
 -- =====================================================================
-
-
--- listSearch
+--listsearch
 listSearch :: Eq a => [a] -> [a] -> Maybe Int
-listSearch _ _ = Just 42  -- DUMMY; REWRITE THIS!!!
+listSearch xs ys = searchformatch xs ys 0
 
+searchformatch :: Eq a => [a] -> [a] -> Int -> Maybe Int
+searchformatch [] _ index = Just index
+searchformatch _ [] _ = Nothing
+searchformatch (x:xs) (y:ys) index
+    | match (x:xs) (y:ys) = Just index
+    | otherwise = searchformatch (x:xs) ys (index + 1)
 
+match :: Eq a => [a] -> [a] -> Bool
+match [] _ = True
+match _ [] = False
+match (x:xs) (y:ys)
+    | x == y = match xs ys
+    | otherwise = False
 -- =====================================================================
 
 
 -- concatEvenOdd
-concatEvenOdd :: [String] -> (String, String)
 {-
   The assignment requires concatEvenOdd to be written as a fold.
   Like this:
 
-    concatEvenOdd xs = fold* ... xs  where
+    concatEvenOdd xs = foldr xs  where
         ...
 
   Above, "..." should be replaced by other code. "fold*" must be one of
   the following: foldl, foldr, foldl1, foldr1.
 -}
-concatEvenOdd _ = ("Yo", "Yoyo")  -- DUMMY; REWRITE THIS!!!
+
+concatEvenOdd :: [String] -> (String, String)
+concatEvenOdd xs = foldr (\(i, x) (evenAcc, oddAcc) ->
+                            if even i
+                            then (x ++ evenAcc, oddAcc)
+                            else (evenAcc, x ++ oddAcc))
+                         ("", "")
+                         (zip [0..] xs)
 

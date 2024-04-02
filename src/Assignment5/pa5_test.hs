@@ -157,11 +157,11 @@ test_op_lessSharp = do
 -- Test Suite for function filter2
 test_filter2 = do
     testMsg "Test Suite: Function filter2"
-    testEq (PA5.filter2 (>0) [-1,1,-2,2] [1,2,3,4,5,6]) [2,4]
+    testEq (PA5.filter2 (> 0) [-1,1,-2,2] [1,2,3,4,5,6]) [2,4]
         "filter2, example #1 from Assn 5 description"
-    testEq (PA5.filter2 (==1) [2,2,1,1,1,1,1] "abcde") "cde"
+    testEq (PA5.filter2 (== 1) [2,2,1,1,1,1,1] "abcde") "cde"
         "filter2, example #2 from Assn 5 description"
-    testEq (PA5.filter2 (=='z') "azazazazazaz" [1..11]) [2,4..10]
+    testEq (PA5.filter2 (== 'z') "azazazazazaz" [1..11]) [2,4..10]
         "filter2, 1st list is string"
     testEq (PA5.filter2 (\n -> mod n 4==2) [1..100] "spaghetti")
         "pe"

@@ -16,6 +16,7 @@ main = do
     let computeMax = do
             putStrLn "Input integers one line at a time on each line, then"
             putStrLn "I will return the maximum of those numbers"
+            putStrLn ""
             let getValues values = do
                     putStrLn "Enter an integer: (blank to return max)"
                     hFlush stdout

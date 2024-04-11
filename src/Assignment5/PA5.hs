@@ -49,9 +49,9 @@ filter2 :: (t -> Bool) -> [t] -> [a] -> [a]
 filter2 _ [] _ = []  -- If the first list is empty, return an empty list
 filter2 _ _ [] = []  -- If the second list is empty, return an empty list
 filter2 pred (x:xs) (y:ys) =
-    if pred x
-    then y: filter2 pred xs ys
-    else filter2 pred xs ys
+    if pred x --apply predicate to head of list
+    then y: filter2 pred xs ys -- if true then append the current index y value to return list
+    else filter2 pred xs ys --else move through to the next value in both.
 
 
 -- =====================================================================
@@ -60,10 +60,10 @@ listSearch :: Eq a => [a] -> [a] -> Maybe Int
 listSearch xs ys = searchformatch xs ys 0
 
 searchformatch :: Eq a => [a] -> [a] -> Int -> Maybe Int
-searchformatch [] _ index = Just index
-searchformatch _ [] _ = Nothing
-searchformatch (x:xs) (y:ys) index
-    | match (x:xs) (y:ys) = Just index
+searchformatch [] _ index = Just index --return the index once done
+searchformatch _ [] _ = Nothing --Return nothing if not found or null lists
+searchformatch (x:xs) (y:ys) index 
+    | match (x:xs) (y:ys) = Just index 
     | otherwise = searchformatch (x:xs) ys (index + 1)
 
 match :: Eq a => [a] -> [a] -> Bool
@@ -86,7 +86,6 @@ match (x:xs) (y:ys)
   Above, "..." should be replaced by other code. "fold*" must be one of
   the following: foldl, foldr, foldl1, foldr1.
 -}
-
 concatEvenOdd :: [String] -> (String, String)
 concatEvenOdd xs = foldr (\(i, x) (evenAcc, oddAcc) ->
                             if even i

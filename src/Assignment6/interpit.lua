@@ -112,7 +112,7 @@ end
 --
 -- THIS FUNCTION IS INTENDED FOR USE IN DEBUGGING ONLY!
 -- IT SHOULD NOT BE CALLED IN THE FINAL VERSION OF THE CODE.
-function astToStr(x)
+local function astToStr(x)
     local symbolNames = {
         "PROGRAM", "EMPTY_STMT", "OUTPUT_STMT", "RETURN_STMT",
         "ASSN_STMT", "FUNC_CALL", "FUNC_DEF", "IF_STMT", "WHILE_LOOP",
@@ -211,22 +211,24 @@ function interpit.interp(ast, state, util)
             -- Do nothing
         elseif ast[1] == OUTPUT_STMT then
             for i = 2, #ast do
-                str = eval_output_arg(ast[i])
+                local str = eval_output_arg(ast[i])
                 util.output(str)
             end
         elseif ast[1] == FUNC_DEF then
-            funcname = ast[2]
-            funcbody = ast[3]
+            local funcname = ast[2]
+            local funcbody = ast[3]
             state.f[funcname] = funcbody
         elseif ast[1] == FUNC_CALL then
-            funcname = ast[2]
-            funcbody = state.f[ast[2]]
+            local funcname = ast[2]
+            local funcbody = state.f[ast[2]]
             if funcbody == nil then
                 funcbody = { PROGRAM }
             end
             interp_program(funcbody)
-        else
-            -- TODO
+        elseif ast[1] == ASSN_STMT then
+			print(astToStr(ast[3]))
+			local val = eval_expr(ast[3])
+			state.v[ast[2]] = val
         end
     end
 
@@ -245,10 +247,9 @@ function interpit.interp(ast, state, util)
             result = "\n"
         elseif ast[1] == CHAR_CALL then
         else -- expression
-            val = eval_expr(ast)
+            local val = eval_expr(ast)
             result = numToStr(val)
         end
-
         return result
     end
 
@@ -256,15 +257,103 @@ function interpit.interp(ast, state, util)
     -- Given the AST for an expression, evaluate it and return the
     -- value, as a number.
     function eval_expr(ast)
-        -- TODO: WRITE THIS!!!
         assert(type(ast) == "table")
         local result
         if ast[1] == NUMLIT_VAL then
             result = strToNum(ast[2])
-        else
-            -- unimplemented
-            result = 42
-        end
+		elseif ast[1] == BOOLLIT_VAL then
+			test = ast[2] == "true"
+			print("debug 265: ast[2] == true: " + test)
+			result = boolToInt(ast[2] == "true")
+		elseif ast[1] == SIMPLE_VAR then
+			if state.v[ast[2]] == nil then
+				result = strToNum(ast[2])
+			else
+				result = state.v[ast[2]]
+			end
+		elseif ast[1] == ARRAY_VAR then
+			local arrayName = ast[2]
+			local index = eval_expr(ast[3])
+			
+			state.a[arrayName] = state.a[arrayName] or {}
+			result = state.a[arrayName][index] or 0
+			elseif ast[1] == INPUT_CALL then
+				result = strToNum(util.input())
+			elseif type(ast[1] == "table") then
+				if ast[1][1] == BIN_OP then
+					local op = ast[2]
+					local leftvalue = eval_expr(ast[2])
+					local rightvalue = eval_expr(ast[3])
+					
+					if op == "+" then
+						result = leftvalue + rightvalue
+					elseif op == "-" then
+						result = leftvalue - rightvalue
+						elseif op == "*" then
+							result = leftvalue * rightvalue
+						elseif op == "/" then
+							if rightvalue == 0 then
+							
+									result = 0
+								else
+									if leftvalue / rightvalue >= 0 then
+										result = math.floor(leftvalue / rightvalue)
+									else
+										result = math.ceil(leftvalue / rightvalue)
+									end
+								end
+							elseif op == "%" then
+								if rightvalue == 0 then
+									result = 0
+								else
+									result = leftvalue % rightvalue
+								end
+							elseif op == "==" then
+								result = boolToInt(leftvalue == rightvalue)
+							elseif op == ">=" then
+								result = boolToInt(leftvalue >= rightvalue)
+
+						elseif op == "<" then
+							result = boolToInt(leftvalue < rightvalue)
+						elseif op == "<=" then
+							result = boolToInt(leftvalue < rightvalue)
+						elseif op == "and" then
+							result = boolToInt(leftvalue == 0 or rightvalue == 0)
+						elseif op == "or" then
+							result = boolToInt( leftvalue ~= 0 or rightvalue ~= 0)
+						else
+							result = 0
+						end
+				end
+			elseif ast[1][1] == UN_OP then
+				local op = ast[1][2]
+				local value = eval_expr(ast[2])
+				if op == "-" then
+					result = -value
+				elseif op == "not" then
+					value = eval_expr(ast[2])
+					result = boolToInt(value == 0)
+				else
+					result = value
+				end
+			elseif ast[1] == RAND_CALL then
+				local num = eval_expr(ast[2])
+				result = util.random(num)
+			elseif ast[1] == FUNC_CALL then
+				local funcname = ast[2]
+				local funcbody = state.f[funcname]
+				if funcbody == nil then
+					funcbody = { PROGRAM }
+				end
+				result = interp_program (funcbody)
+				if result == nil then
+					result = 0
+				end
+			else
+				print("unkown: " .. ast[1])
+				print("type: " .. type(ast[1]))
+				result = ast[1]
+			end
         return result
     end
 
